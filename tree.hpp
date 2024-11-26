@@ -153,19 +153,11 @@ public:
     // a reference.
     V &operator[](const K &key)
     {
-        (void) key;
-        // THis is just to keep the compiler happy
-        // so your code compiles, this is not what you
-        // actually want to return
         if (!root)
         {
-        root = new BinaryTreeNode<K, V>(key);
+            root = new BinaryTreeNode<K, V>(key);
         }
-       
-        else 
-        {
-            return root->find(key);
-        }
+        return root->find(key);
     }
 
     // This should return false if the tree
@@ -366,6 +358,10 @@ protected:
     }
 
     K key;
+    V value;
+    BinaryTreeNode<K, V> *left;
+    BinaryTreeNode<K, V> *right;
+};
     V value;
     BinaryTreeNode<K, V> *left;
     BinaryTreeNode<K, V> *right;
