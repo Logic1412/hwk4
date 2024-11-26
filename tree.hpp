@@ -1,4 +1,3 @@
-
 // We are going to build a binary search tree with an explicit
 // stack based iterator.  We are doing this as a "header-only"
 // c++ implementation, as it is templated and therefore needs
@@ -12,7 +11,7 @@
 #include <stack>
 #include <utility>
 
-#define HERE {std::cout << "IMPLEMENT HERE\n";}
+//#define HERE {std::cout << "IMPLEMENT HERE\n";}
 
 // C++ require declaration before use, so we define
 // our three classes here.
@@ -51,7 +50,12 @@ class BinaryTreeIterator : public std::input_iterator_tag
     BinaryTreeIterator(BinaryTreeNode<K, V> *root, bool start)
     {
         (void) root; (void) start;
-        HERE
+        current = nullptr;
+        if (start && root)
+        {
+            current = root;
+            incr();
+        }
     }
 
 public:
@@ -63,8 +67,9 @@ public:
     bool operator!=(BinaryTreeIterator<K, V> &other)
     {
         (void)other;
-     HERE
-     return false;
+        bool curEnd = (current == nullptr && working_stack.empty());
+        bool otherEnd = (other.current == nullptr && other.working_stack.empty());
+        return !(curEnd && otherEnd);
     }
 
     // This is the heart of the tree traversal algorithm.
@@ -80,7 +85,21 @@ public:
     // and set it to current...
     void incr()
     {
-        HERE
+        while (current != nullptr)
+    {
+        working_stack.push(current);
+        current = current->left;
+    }
+
+    if (!working_stack.empty())
+    {
+        current = working_stack.top();
+        working_stack.pop();
+    }
+    else
+    {
+        current = nullptr;
+    }
     }
 
     // This should just call incr
@@ -96,10 +115,11 @@ public:
     // current node's key and value.
     std::pair<K, V> operator*()
     {
-        HERE
-        // This isn't actually what you want to return,
-        // its just a placeholder so the compiler doesn't complain.
-        return std::pair(current->key, current->value);
+        if (current)
+        {
+            return std::make_pair(current->key, current->value);
+        }
+        throw std::logic_error("Dereference of an invalid iterator");
     }
 
 private:
@@ -134,12 +154,18 @@ public:
     V &operator[](const K &key)
     {
         (void) key;
-        HERE
         // THis is just to keep the compiler happy
         // so your code compiles, this is not what you
         // actually want to return
-        V* tmp = new V();
-        return *tmp;
+        if (!root)
+        {
+        root = new BinaryTreeNode<K, V>(key);
+        }
+       
+        else 
+        {
+            return root->find(key);
+        }
     }
 
     // This should return false if the tree
@@ -147,8 +173,11 @@ public:
     bool contains(const K &key)
     {
         (void) key;
-        HERE
+        if (!root)
+        {
         return false;
+        }
+        else return root->contains(key);
     }
 
     // Erases a node if a key matches.  If the
@@ -157,7 +186,8 @@ public:
     void erase(const K &key)
     {
         (void) key;
-        HERE;
+        if (root)
+        root = root->erase(key);
     }
 
     // And the destructor for the binary tree.
@@ -167,7 +197,10 @@ public:
     // on the root.
     ~BinaryTree()
     {
-        HERE;
+        if (root)
+    {
+        root->freetree();
+    }
     }
 
     // This returns the iterators.
@@ -207,7 +240,17 @@ public:
     // and this is a case where you want to do it.
     void freetree()
     {
-        HERE;
+        if (left)
+        {
+            left->freetree();
+            left = nullptr;
+        }
+        if (right)
+        {
+            right->freetree();
+            right = nullptr;
+        }
+        delete this;
     }
 
 protected:
@@ -238,7 +281,40 @@ protected:
     BinaryTreeNode<K, V> *erase(const K &k)
     {
         (void) k;
-        HERE;
+        if (k < key)
+        {
+            if (left)
+                left = left->erase(k);
+        }
+        else if (k > key)
+        {
+            if (right)
+                right = right->erase(k);
+        }
+        else
+        {
+            if (!left)
+            {
+                BinaryTreeNode<K, V> *temp = right;
+                delete this;
+                return temp;
+            }
+            else if (!right)
+            {
+                BinaryTreeNode<K, V> *temp = left;
+                delete this;
+                return temp;
+            }
+            else
+            {
+                BinaryTreeNode<K, V> *successor = left;
+                while (successor->right)
+                    successor = successor->right;
+                key = successor->key;
+                value = successor->value;
+                left = left->erase(successor->key);
+            }
+        }
         // Again, not what you will always want to return...
         return this;
     }
@@ -252,14 +328,22 @@ protected:
     // the right. 
     V &find(const K &k)
     {
-                (void) k;
-        HERE
-        // THis is just to keep the compiler happy
-        // so your code compiles, this is not what you
-        // actually want to return
-        V* tmp = new V();
-        return *tmp;
-
+        if (k == key)
+        {
+            return value;
+        }
+        if (k < key)
+        {
+            if (!left)
+                left = new BinaryTreeNode<K, V>(k);
+         return left->find(k);
+        }
+        else // k > key
+        {
+            if (!right)
+                right = new BinaryTreeNode<K, V>(k);
+            return right->find(k);
+        }
     }
 
     // And contains is a recursive search that doesn't
@@ -267,9 +351,18 @@ protected:
     bool contains(const K &k)
     {
         (void) k;
-        HERE;
-        return false;
-        
+        if (k == key)
+        {
+            return true;
+        }
+        else if (k < key)
+        {
+            return left ? left->contains(k) : false;
+        }
+        else if (k > key)
+        {
+            return right ? right->contains(k) : false;
+        }
     }
 
     K key;
